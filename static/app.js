@@ -677,7 +677,7 @@ function userInitials(name) {
 
 function resizeAvatar(file) {
   if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-    return Promise.reject(new Error("Use a JPG, PNG, or WebP image."));
+    return Promise.reject(new Error("Use uma imagem JPG, PNG ou WebP."));
   }
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -741,7 +741,7 @@ function filterLabel(group) {
 
 function renderClock() {
   const now = getNow();
-  $("#server-clock").textContent = `Brasilia time: ${formatClockDateTime(now)}`;
+  $("#server-clock").textContent = `Europe time: ${formatClockDateTime(now)}`;
   renderMissingCounter();
 }
 
@@ -1770,7 +1770,7 @@ function getNow() {
 function formatDateTime(value) {
   const date = value instanceof Date ? value : new Date(value);
   return new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Sao_Paulo",
+    timeZone: "Europe/Amsterdam",
     weekday: "short",
     day: "2-digit",
     month: "2-digit",
@@ -1782,7 +1782,7 @@ function formatDateTime(value) {
 function formatDayTitle(value) {
   const date = value instanceof Date ? value : new Date(value);
   return new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Sao_Paulo",
+    timeZone: "Europe/Amsterdam",
     weekday: "short",
     day: "2-digit",
     month: "2-digit",
@@ -1793,7 +1793,7 @@ function formatDayTitle(value) {
 function formatClockDateTime(value) {
   const date = value instanceof Date ? value : new Date(value);
   return new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Sao_Paulo",
+    timeZone: "Europe/Amsterdam",
     weekday: "short",
     day: "2-digit",
     month: "2-digit",

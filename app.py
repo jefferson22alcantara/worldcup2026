@@ -436,7 +436,7 @@ def seed_matches_if_needed(conn):
         for row in reader:
             start = datetime.strptime(
                 f"{row['data_brasilia']} {row['horario_brasilia']}", "%Y-%m-%d %H:%M"
-            ).replace(tzinfo=BR_TZ)
+            ).replace(tzinfo=AMS_TZ)
             phase = row["fase"].strip()
             DB.execute(
                 conn,
