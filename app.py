@@ -24,13 +24,14 @@ DATA_DIR = ROOT / "data"
 STATIC_DIR = ROOT / "static"
 CSV_PATH = DATA_DIR / "copa_do_mundo_2026_jogos_horario_brasilia.csv"
 BR_TZ = ZoneInfo("America/Sao_Paulo")
+AMS_TZ = ZoneInfo("Europe/Amsterdam")
 SESSION_COOKIE = "bolao_session"
 SESSION_MAX_AGE = 60 * 60 * 24 * 30
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-change-me")
 
 
 def now_brasilia():
-    return datetime.now(BR_TZ)
+    return datetime.now(AMS_TZ)
 
 
 def iso_now():
@@ -67,8 +68,8 @@ class Database:
         self.url = os.getenv("DATABASE_URL", "").strip()
         if os.getenv("RENDER") == "true" and not self.url:
             raise RuntimeError(
-                "DATABASE_URL precisa estar configurado no Render. "
-                "O filesystem do plano free é efêmero, então SQLite não deve ser usado em produção."
+                "DATABASE_URL must be configured on Render. "
+                "The free-tier filesystem is ephemeral, so SQLite should not be used in production."
             )
         self.is_postgres = self.url.startswith(("postgres://", "postgresql://"))
         self.sqlite_path = Path(os.getenv("SQLITE_PATH", DATA_DIR / "bolao.sqlite3"))
@@ -347,7 +348,7 @@ def ensure_early_final_table(conn):
 
 def table_columns(conn, table):
     if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", table):
-        raise ValueError("Nome de tabela inválido.")
+        raise ValueError("Invalid table name.")
     if DB.is_postgres:
         rows = DB.rows(
             DB.execute(
@@ -428,7 +429,7 @@ def seed_matches_if_needed(conn):
     if existing:
         return
     if not CSV_PATH.exists():
-        raise RuntimeError(f"CSV de jogos não encontrado em {CSV_PATH}")
+        raise RuntimeError(f"Match CSV not found at {CSV_PATH}")
 
     with CSV_PATH.open("r", encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
@@ -636,7 +637,7 @@ def current_user(req):
 def require_user(req, start_response):
     user = current_user(req)
     if not user:
-        return None, json_error(start_response, "Faça login para continuar.", 401, "nao_autenticado")
+        return None, json_error(start_response, "Please sign in to continue.", 401, "nao_autenticado")
     return user, None
 
 
@@ -645,7 +646,7 @@ def require_admin(req, start_response):
     if error:
         return None, error
     if not user["is_admin"]:
-        return None, json_error(start_response, "Acesso restrito ao administrador.", 403, "sem_permissao")
+        return None, json_error(start_response, "Administrator access only.", 403, "sem_permissao")
     return user, None
 
 
@@ -672,19 +673,19 @@ def avatar_url(user):
 
 def parse_avatar_data_url(value):
     if not value:
-        raise ValueError("Selecione uma imagem para enviar.")
+        raise ValueError("Choose an image to upload.")
     match = re.fullmatch(r"data:(image/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)", value)
     if not match:
-        raise ValueError("Use uma imagem JPG, PNG ou WebP.")
+        raise ValueError("Use a JPG, PNG, or WebP image.")
     mime, encoded = match.groups()
     try:
         raw = base64.b64decode(encoded, validate=True)
     except Exception as exc:
-        raise ValueError("A imagem enviada está inválida.") from exc
+        raise ValueError("The uploaded image is invalid.") from exc
     if len(raw) > 1_000_000:
-        raise ValueError("A foto deve ter no máximo 1 MB.")
+        raise ValueError("The photo must be at most 1 MB.")
     if len(raw) < 32:
-        raise ValueError("A imagem enviada está vazia ou inválida.")
+        raise ValueError("The uploaded image is empty or invalid.")
     return mime, encoded
 
 
@@ -702,9 +703,9 @@ def is_knockout(match):
 
 SCORE_RULES = [
     ("exact", "Placar exato", 6),
-    ("result_goal_difference", "Resultado e diferença de gols", 4),
-    ("result_team_goals", "Resultado e total de gols de uma equipe", 3),
-    ("result", "Resultado (vencedor ou empate)", 2),
+    ("result_goal_difference", "Correct result and goal difference", 4),
+    ("result_team_goals", "Correct result and one team's total goals", 3),
+    ("result", "Correct result (winner or draw)", 2),
     ("inverted", "Placar invertido", -2),
     ("zero", "Placar errado", 0),
 ]
@@ -727,10 +728,10 @@ def score_prediction_detail(prediction, match):
         return {"points": 6, "rule_key": "exact", "rule_label": "Placar exato"}
     if pred_outcome == real_outcome:
         if ph - pa == rh - ra:
-            return {"points": 4, "rule_key": "result_goal_difference", "rule_label": "Resultado e diferença de gols"}
+            return {"points": 4, "rule_key": "result_goal_difference", "rule_label": "Correct result and goal difference"}
         if ph == rh or pa == ra:
-            return {"points": 3, "rule_key": "result_team_goals", "rule_label": "Resultado e total de gols de uma equipe"}
-        return {"points": 2, "rule_key": "result", "rule_label": "Resultado (vencedor ou empate)"}
+            return {"points": 3, "rule_key": "result_team_goals", "rule_label": "Correct result and one team's total goals"}
+        return {"points": 2, "rule_key": "result", "rule_label": "Correct result (winner or draw)"}
     if ph == ra and pa == rh and pred_outcome != "D" and real_outcome != "D":
         return {"points": -2, "rule_key": "inverted", "rule_label": "Placar invertido"}
     return {"points": 0, "rule_key": "zero", "rule_label": "Placar errado"}
@@ -1121,29 +1122,29 @@ def recalc_all_early_final_points(conn):
 
 def parse_score(value, field_name):
     if value is None or value == "":
-        raise ValueError(f"Informe o placar de {field_name}.")
+        raise ValueError(f"Enter the score for {field_name}.")
     try:
         score = int(value)
     except (TypeError, ValueError):
-        raise ValueError(f"O placar de {field_name} precisa ser um número inteiro.")
+        raise ValueError(f"The score for {field_name} must be an integer.")
     if score < 0 or score > 99:
-        raise ValueError(f"O placar de {field_name} deve ficar entre 0 e 99.")
+        raise ValueError(f"The score for {field_name} must be between 0 and 99.")
     return score
 
 
 def validate_username(username):
     username = re.sub(r"\s+", " ", (username or "").strip())
     if len(username) < 3 or len(username) > 40:
-        raise ValueError("O nome de usuÃ¡rio deve ter entre 3 e 40 caracteres.")
+        raise ValueError("The username must be between 3 and 40 characters.")
     if not re.fullmatch(r"[\w\u00C0-\u00FF .'-]+", username):
-        raise ValueError("Use apenas letras, nÃºmeros, espaÃ§os, ponto, hÃ­fen ou apÃ³strofo no nome.")
+        raise ValueError("Use only letters, numbers, spaces, periods, hyphens, or apostrophes in the name.")
     return username
 
 
 def validate_password(password):
     password = password or ""
     if len(password) < 6:
-        raise ValueError("A senha deve ter pelo menos 6 caracteres.")
+        raise ValueError("The password must be at least 6 characters long.")
     return password
 
 
@@ -1153,11 +1154,11 @@ def validate_early_final_payload(body, teams):
     runner_up = (body.get("runner_up") or "").strip()
 
     if not champion or not runner_up:
-        raise ValueError("Escolha o campeão e o vice-campeão.")
+        raise ValueError("Choose the champion and runner-up.")
     if champion not in valid_teams or runner_up not in valid_teams:
-        raise ValueError("Escolha seleções válidas da lista.")
+        raise ValueError("Choose valid teams from the list.")
     if champion == runner_up:
-        raise ValueError("Campeão e vice-campeão precisam ser seleções diferentes.")
+        raise ValueError("The champion and runner-up must be different teams.")
     return champion, runner_up
 
 
@@ -1167,11 +1168,11 @@ def create_user(username, password, avatar):
     avatar_mime, avatar_data = parse_avatar_data_url(avatar)
     now = iso_now()
     if len(username) < 3 or len(username) > 40:
-        raise ValueError("O nome de usuário deve ter entre 3 e 40 caracteres.")
+        raise ValueError("The username must be between 3 and 40 characters.")
     if not re.fullmatch(r"[\w\u00C0-\u00FF .'-]+", username):
-        raise ValueError("Use apenas letras, números, espaços, ponto, hífen ou apóstrofo no nome.")
+        raise ValueError("Use only letters, numbers, spaces, periods, hyphens, or apostrophes in the name.")
     if len(password) < 6:
-        raise ValueError("A senha deve ter pelo menos 6 caracteres.")
+        raise ValueError("The password must be at least 6 characters long.")
 
     with DB.connect() as conn:
         try:
@@ -1200,7 +1201,7 @@ def create_user(username, password, avatar):
         except Exception as exc:
             conn.rollback()
             if "unique" in str(exc).lower() or "duplicate" in str(exc).lower():
-                raise ValueError("Esse nome de usuário já existe.") from exc
+                raise ValueError("That username already exists.") from exc
             raise
         return DB.one(
             DB.execute(
@@ -1247,14 +1248,14 @@ def handle_auth(req, start_response):
                 )
             )
         if not user or not verify_password(password, user["password_hash"]):
-            return json_error(start_response, "Usuário ou senha inválidos.", 401, "login_invalido")
+            return json_error(start_response, "Invalid username or password.", 401, "login_invalido")
         user["is_admin"] = boolish(user["is_admin"])
         user["active"] = boolish(user.get("active", True))
         if not user["active"]:
-            return json_error(start_response, "Esta conta foi desativada pelo administrador.", 403, "conta_desativada")
+            return json_error(start_response, "This account has been disabled by an administrator.", 403, "conta_desativada")
         return json_response(
             start_response,
-            {"ok": True, "user": public_user(user), "message": "Login realizado."},
+            {"ok": True, "user": public_user(user), "message": "Signed in."},
             headers=[set_session_cookie(make_session(user["id"]))],
         )
 
@@ -1316,7 +1317,7 @@ def build_ranking(conn):
         breakdown["specials"] = [
             {
                 "key": "early_final",
-                "label": "Final adiantada",
+                "label": "Final prediction",
                 "points": int(row["early_final_points"] or 0),
             }
         ]
@@ -1738,11 +1739,11 @@ def handle_api(req, start_response):
                 )
             )
         if not row or not row.get("avatar_mime") or not row.get("avatar_data"):
-            return json_error(start_response, "Foto não encontrada.", 404, "foto_nao_encontrada")
+            return json_error(start_response, "Photo not found.", 404, "foto_nao_encontrada")
         try:
             raw = base64.b64decode(row["avatar_data"], validate=True)
         except Exception:
-            return json_error(start_response, "Foto inválida.", 500, "foto_invalida")
+            return json_error(start_response, "Invalid photo.", 500, "foto_invalida")
         return send(
             start_response,
             raw,
@@ -1792,7 +1793,7 @@ def handle_api(req, start_response):
             if lock_at and now_brasilia() >= parse_dt(lock_at):
                 return json_error(
                     start_response,
-                    f"Final adiantada fechada desde {parse_dt(lock_at).strftime('%d/%m/%Y às %H:%M')}.",
+                    f"Final prediction locked since {parse_dt(lock_at).strftime('%d/%m/%Y at %H:%M')}.",
                     409,
                     "final_adiantada_fechada",
                 )
@@ -1820,7 +1821,7 @@ def handle_api(req, start_response):
             recalc_all_early_final_points(conn)
             conn.commit()
             payload = build_early_final_payload(conn, user)
-        return json_response(start_response, {"ok": True, "message": "Final adiantada salva.", **payload})
+        return json_response(start_response, {"ok": True, "message": "Final prediction saved.", **payload})
 
     if req.path == "/api/admin/users" and req.method == "GET":
         _, error = require_admin(req, start_response)
@@ -1844,7 +1845,7 @@ def handle_api(req, start_response):
         with DB.connect() as conn:
             target = DB.one(DB.execute(conn, "SELECT id FROM users WHERE id = ?", (user_id,)))
             if not target:
-                return json_error(start_response, "UsuÃ¡rio nÃ£o encontrado.", 404, "usuario_nao_encontrado")
+                return json_error(start_response, "User not found.", 404, "usuario_nao_encontrado")
             try:
                 DB.execute(
                     conn,
@@ -1855,10 +1856,10 @@ def handle_api(req, start_response):
             except Exception as exc:
                 conn.rollback()
                 if "unique" in str(exc).lower() or "duplicate" in str(exc).lower():
-                    return json_error(start_response, "Esse nome de usuÃ¡rio jÃ¡ existe.", 409, "usuario_duplicado")
+                    return json_error(start_response, "That username already exists.", 409, "usuario_duplicado")
                 raise
             users = build_admin_users(conn)
-        return json_response(start_response, {"ok": True, "users": users, "message": "UsuÃ¡rio renomeado."})
+        return json_response(start_response, {"ok": True, "users": users, "message": "User renamed."})
 
     reset_user = re.fullmatch(r"/api/admin/users/(\d+)/reset-password", req.path)
     if reset_user and req.method == "POST":
@@ -1874,10 +1875,10 @@ def handle_api(req, start_response):
         with DB.connect() as conn:
             target = DB.one(DB.execute(conn, "SELECT id FROM users WHERE id = ?", (user_id,)))
             if not target:
-                return json_error(start_response, "UsuÃ¡rio nÃ£o encontrado.", 404, "usuario_nao_encontrado")
+                return json_error(start_response, "User not found.", 404, "usuario_nao_encontrado")
             DB.execute(conn, "UPDATE users SET password_hash = ? WHERE id = ?", (hash_password(password), user_id))
             conn.commit()
-        return json_response(start_response, {"ok": True, "message": "Senha redefinida."})
+        return json_response(start_response, {"ok": True, "message": "Password reset."})
 
     active_user = re.fullmatch(r"/api/admin/users/(\d+)/active", req.path)
     if active_user and req.method == "POST":
@@ -1888,17 +1889,17 @@ def handle_api(req, start_response):
         body = req.json()
         active = boolish(body.get("active"))
         if user_id == admin["id"] and not active:
-            return json_error(start_response, "VocÃª nÃ£o pode desativar sua prÃ³pria conta.", 400, "auto_desativar")
+            return json_error(start_response, "You cannot disable your own account.", 400, "auto_desativar")
         with DB.connect() as conn:
             target = DB.one(DB.execute(conn, "SELECT id FROM users WHERE id = ?", (user_id,)))
             if not target:
-                return json_error(start_response, "UsuÃ¡rio nÃ£o encontrado.", 404, "usuario_nao_encontrado")
+                return json_error(start_response, "User not found.", 404, "usuario_nao_encontrado")
             DB.execute(conn, "UPDATE users SET active = ? WHERE id = ?", (active, user_id))
             conn.commit()
             users = build_admin_users(conn)
         return json_response(
             start_response,
-            {"ok": True, "users": users, "message": "Conta ativada." if active else "Conta desativada."},
+            {"ok": True, "users": users, "message": "Account enabled." if active else "Account disabled."},
         )
 
     if req.path == "/api/admin/result-audits" and req.method == "GET":
@@ -1944,11 +1945,11 @@ def handle_api(req, start_response):
         with DB.connect() as conn:
             match = DB.one(DB.execute(conn, "SELECT * FROM matches WHERE id = ?", (match_id,)))
             if not match:
-                return json_error(start_response, "Partida não encontrada.", 404, "partida_nao_encontrada")
+                return json_error(start_response, "Match not found.", 404, "partida_nao_encontrada")
             if now_brasilia() < parse_dt(match["start_at"]) + timedelta(minutes=5) and not user["is_admin"]:
                 return json_error(
                     start_response,
-                    "Os palpites desta partida ficam ocultos até 5 minutos após o início.",
+                    "Predictions for this match stay hidden until 5 minutes after kickoff.",
                     403,
                     "palpites_ocultos",
                 )
@@ -1992,11 +1993,11 @@ def handle_api(req, start_response):
         with DB.connect() as conn:
             match = DB.one(DB.execute(conn, "SELECT * FROM matches WHERE id = ?", (match_id,)))
             if not match:
-                return json_error(start_response, "Partida não encontrada.", 404, "partida_nao_encontrada")
+                return json_error(start_response, "Match not found.", 404, "partida_nao_encontrada")
             if match["status"] == "encerrado":
                 return json_error(
                     start_response,
-                    "Esta partida já foi encerrada pelo administrador.",
+                    "This match has already been closed by an administrator.",
                     409,
                     "partida_encerrada",
                 )
@@ -2004,14 +2005,14 @@ def handle_api(req, start_response):
             if now_brasilia() >= start:
                 return json_error(
                     start_response,
-                    f"Palpites encerrados para esta partida desde {start.strftime('%d/%m/%Y às %H:%M')}.",
+                    f"Predictions for this match have been closed since {start.strftime('%d/%m/%Y at %H:%M')}.",
                     409,
                     "palpite_fechado",
                 )
             if body.get("clear"):
                 DB.execute(conn, "DELETE FROM predictions WHERE user_id = ? AND match_id = ?", (user["id"], match_id))
                 conn.commit()
-                return json_response(start_response, {"ok": True, "message": "Palpite removido.", "prediction": None})
+                return json_response(start_response, {"ok": True, "message": "Prediction removed.", "prediction": None})
             try:
                 home_score = parse_score(body.get("home_score"), "time A")
                 away_score = parse_score(body.get("away_score"), "time B")
@@ -2038,7 +2039,7 @@ def handle_api(req, start_response):
             )
         return json_response(
             start_response,
-            {"ok": True, "message": "Palpite aceito.", "prediction": serialize_prediction(prediction)},
+            {"ok": True, "message": "Prediction accepted.", "prediction": serialize_prediction(prediction)},
         )
 
     result_match = re.fullmatch(r"/api/admin/matches/(\d+)/result", req.path)
@@ -2051,7 +2052,7 @@ def handle_api(req, start_response):
         with DB.connect() as conn:
             match = DB.one(DB.execute(conn, "SELECT * FROM matches WHERE id = ?", (match_id,)))
             if not match:
-                return json_error(start_response, "Partida não encontrada.", 404, "partida_nao_encontrada")
+                return json_error(start_response, "Match not found.", 404, "partida_nao_encontrada")
             try:
                 home = parse_score(body.get("result_home"), "time A")
                 away = parse_score(body.get("result_away"), "time B")
@@ -2090,7 +2091,7 @@ def handle_api(req, start_response):
             start_response,
             {
                 "ok": True,
-                "message": "Resultado salvo. Ranking recalculado.",
+                "message": "Result saved. Standings recalculated.",
                 "recalculated": summary,
                 "early_final_recalculated": early_final_changed,
                 "admin": public_user(user),
@@ -2121,7 +2122,7 @@ def handle_api(req, start_response):
                     "clear_result",
                 )
             if not match:
-                return json_error(start_response, "Partida não encontrada.", 404, "partida_nao_encontrada")
+                return json_error(start_response, "Match not found.", 404, "partida_nao_encontrada")
             DB.execute(
                 conn,
                 """
@@ -2139,21 +2140,21 @@ def handle_api(req, start_response):
             start_response,
             {
                 "ok": True,
-                "message": "Resultado reaberto. Pontos removidos desta partida.",
+                "message": "Result reopened. Points removed for this match.",
                 "early_final_recalculated": early_final_changed,
             },
         )
 
-    return json_error(start_response, "Rota não encontrada.", 404, "rota_nao_encontrada")
+    return json_error(start_response, "Route not found.", 404, "rota_nao_encontrada")
 
 
 def serve_static(req, start_response):
     rel = req.path.removeprefix("/static/")
     requested = (STATIC_DIR / rel).resolve()
     if STATIC_DIR not in requested.parents and requested != STATIC_DIR:
-        return json_error(start_response, "Arquivo inválido.", 403, "arquivo_invalido")
+        return json_error(start_response, "Invalid file.", 403, "arquivo_invalido")
     if not requested.exists() or not requested.is_file():
-        return json_error(start_response, "Arquivo não encontrado.", 404, "arquivo_nao_encontrado")
+        return json_error(start_response, "File not found.", 404, "arquivo_nao_encontrado")
     content_type = mimetypes.guess_type(str(requested))[0] or "application/octet-stream"
     if requested.name.endswith(".webmanifest"):
         content_type = "application/manifest+json"
@@ -2163,7 +2164,7 @@ def serve_static(req, start_response):
 def serve_service_worker(start_response):
     worker = STATIC_DIR / "sw.js"
     if not worker.exists():
-        return json_error(start_response, "Arquivo nÃ£o encontrado.", 404, "arquivo_nao_encontrado")
+        return json_error(start_response, "File not found.", 404, "arquivo_nao_encontrado")
     return send(
         start_response,
         worker.read_bytes(),
@@ -2190,12 +2191,12 @@ def application(environ, start_response):
             return serve_index(start_response)
         return serve_index(start_response)
     except json.JSONDecodeError:
-        return json_error(start_response, "JSON inválido.", 400, "json_invalido")
+        return json_error(start_response, "Invalid JSON.", 400, "json_invalido")
     except Exception:
         traceback.print_exc(file=sys.stderr)
         if req.path.startswith("/api/"):
-            return json_error(start_response, "Erro interno do servidor.", 500, "erro_interno")
-        return send(start_response, "<h1>Erro interno</h1>", status=500, content_type="text/html; charset=utf-8")
+            return json_error(start_response, "Internal server error.", 500, "erro_interno")
+        return send(start_response, "<h1>Internal error</h1>", status=500, content_type="text/html; charset=utf-8")
 
 
 if os.getenv("BOLAO_SKIP_INIT") != "1":
@@ -2205,7 +2206,7 @@ if os.getenv("BOLAO_SKIP_INIT") != "1":
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "8000"))
     try:
-        print(f"Bolão rodando em http://127.0.0.1:{port}", flush=True)
+        print(f"World Cup pool running at http://127.0.0.1:{port}", flush=True)
     except OSError:
         pass
     with make_server("", port, application) as httpd:

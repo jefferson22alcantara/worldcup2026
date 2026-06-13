@@ -1,7 +1,7 @@
 {
-  "name": "Bolao Copa 2026",
-  "short_name": "Bolao 2026",
-  "description": "Palpites, resultados e ranking do bolao da Copa 2026.",
+  "name": "World Cup 2026 Pool",
+  "short_name": "WC 2026",
+  "description": "Predictions, results, and standings for the World Cup 2026 pool.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

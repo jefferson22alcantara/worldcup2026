@@ -40,12 +40,12 @@ const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selec
 
 const PHASE_ORDER = ["grupos", "segunda_fase", "oitavas", "quartas", "semifinal", "terceiro_lugar", "final"];
 const PHASE_LABELS = {
-  grupos: "Fase de Grupos",
-  segunda_fase: "32 avos",
-  oitavas: "Oitavas",
-  quartas: "Quartas",
+  grupos: "Group Stage",
+  segunda_fase: "Round of 32",
+  oitavas: "Round of 16",
+  quartas: "Quarterfinals",
   semifinal: "Semifinal",
-  terceiro_lugar: "Disputa 3º Lugar",
+  terceiro_lugar: "Third-Place Match",
   final: "Final",
 };
 
@@ -111,25 +111,25 @@ const FLAG_CODES = {
 const FILTER_GROUPS = [
   {
     key: "group",
-    title: "Grupos",
+    title: "Groups",
     className: "group-buttons",
     options: [
-      { value: "all", label: "Todos" },
-      ...Array.from({ length: 12 }, (_, index) => ({ value: String.fromCharCode(65 + index), label: `Grupo ${String.fromCharCode(65 + index)}` })),
+      { value: "all", label: "All" },
+      ...Array.from({ length: 12 }, (_, index) => ({ value: String.fromCharCode(65 + index), label: `Group ${String.fromCharCode(65 + index)}` })),
     ],
   },
   {
     key: "phase",
-    title: "Fases",
+    title: "Phases",
     className: "phase-buttons",
     options: [
-      { value: "all", label: "Todos" },
-      { value: "grupos", label: "Grupos" },
-      { value: "segunda_fase", label: "32 avos" },
-      { value: "oitavas", label: "Oitavas" },
-      { value: "quartas", label: "Quartas" },
+      { value: "all", label: "All" },
+      { value: "grupos", label: "Group Stage" },
+      { value: "segunda_fase", label: "Round of 32" },
+      { value: "oitavas", label: "Round of 16" },
+      { value: "quartas", label: "Quarterfinals" },
       { value: "semifinal", label: "Semifinal" },
-      { value: "terceiro_lugar", label: "3º Lugar" },
+      { value: "terceiro_lugar", label: "Third Place" },
       { value: "final", label: "Final" },
     ],
   },
@@ -138,20 +138,20 @@ const FILTER_GROUPS = [
     title: "Status",
     className: "status-buttons",
     options: [
-      { value: "all", label: "Todos" },
-      { value: "agendado", label: "Agendado" },
-      { value: "em andamento", label: "Em andamento" },
-      { value: "encerrado", label: "Encerrado" },
+      { value: "all", label: "All" },
+      { value: "scheduled", label: "Scheduled" },
+      { value: "live", label: "Live" },
+      { value: "closed", label: "Closed" },
     ],
   },
   {
     key: "sort",
-    title: "Ordenar",
+    title: "Sort",
     className: "sort-buttons",
     options: [
-      { value: "time", label: "Horário" },
-      { value: "group", label: "Grupo" },
-      { value: "phase", label: "Fase" },
+      { value: "time", label: "Time" },
+      { value: "group", label: "Group" },
+      { value: "phase", label: "Phase" },
     ],
   },
 ];
@@ -177,14 +177,14 @@ function bindUi() {
       if (state.authMode === "register") {
         const file = $("#auth-photo").files[0];
         if (!file) {
-          showToast("Escolha uma foto para criar a conta.", "error");
+          showToast("Choose a photo to create your account.", "error");
           return;
         }
         body.avatar = await resizeAvatar(file);
       }
       const data = await api(endpoint, { method: "POST", body });
       state.user = data.user;
-      showToast(data.message || "Tudo certo.");
+        showToast(data.message || "All set.");
       $("#auth-photo").value = "";
       await enterApp();
     } catch (error) {
@@ -237,7 +237,7 @@ function bindUi() {
     event.preventDefault();
     const file = $("#profile-photo").files[0];
     if (!file) {
-      showToast("Selecione uma foto antes de salvar.", "error");
+        showToast("Select a photo before saving.", "error");
       return;
     }
     try {
@@ -248,7 +248,7 @@ function bindUi() {
       renderUserChrome();
       renderProfile();
       await loadRanking(false);
-      showToast(data.message || "Perfil atualizado.");
+        showToast(data.message || "Profile updated.");
     } catch (error) {
       showToast(error.message, "error");
     }
@@ -262,7 +262,7 @@ function bindUi() {
       renderUserChrome();
       renderProfile();
       await loadRanking(false);
-      showToast("Foto removida.");
+        showToast("Photo removed.");
     } catch (error) {
       showToast(error.message, "error");
     }
@@ -409,7 +409,7 @@ function showAuth() {
 function setAuthMode(mode) {
   state.authMode = mode;
   $$(".auth-tab").forEach((button) => button.classList.toggle("active", button.dataset.authMode === mode));
-  $("#auth-submit-label").textContent = mode === "register" ? "Criar conta" : "Entrar";
+  $("#auth-submit-label").textContent = mode === "register" ? "Create account" : "Sign in";
   $("#auth-password").autocomplete = mode === "register" ? "new-password" : "current-password";
   $("#auth-avatar-field").classList.toggle("hidden", mode !== "register");
   $("#auth-photo").required = mode === "register";
@@ -429,7 +429,7 @@ async function loadAll(withToast = false) {
   try {
     await Promise.all(jobs);
     state.lastLoadedAt = Date.now();
-    if (withToast) showToast("Dados atualizados.");
+    if (withToast) showToast("Data refreshed.");
   } finally {
     state.loadingAll = false;
   }
@@ -494,7 +494,7 @@ async function api(path, options = {}) {
   const response = await fetch(path, init);
   const data = await response.json().catch(() => ({}));
   if (!response.ok || data.ok === false) {
-    throw new Error(data.error || "Não foi possível concluir a ação.");
+    throw new Error(data.error || "Could not complete the action.");
   }
   return data;
 }
@@ -531,7 +531,7 @@ function renderEarlyFinal() {
   if (!container) return;
   const data = state.earlyFinal;
   if (!data) {
-    container.innerHTML = `<div class="empty-state">Carregando Final...</div>`;
+    container.innerHTML = `<div class="empty-state">Loading Final...</div>`;
     return;
   }
 
@@ -545,34 +545,34 @@ function renderEarlyFinal() {
   container.innerHTML = `
     <section class="early-final-card">
       <div class="early-final-status">
-        <span class="pill ${data.locked ? "gold" : "blue"}">${data.locked ? "Fechada" : "Aberta"}</span>
-        <strong>Trava em ${formatDateTime(data.lock_at)}</strong>
-        <span>${hasPrediction ? `Sua pontuação atual: ${points} pts` : "Nenhum palpite salvo ainda."}</span>
+        <span class="pill ${data.locked ? "gold" : "blue"}">${data.locked ? "Closed" : "Open"}</span>
+        <strong>Locks at ${formatDateTime(data.lock_at)}</strong>
+        <span>${hasPrediction ? `Your current score: ${points} pts` : "No prediction saved yet."}</span>
       </div>
       <form id="early-final-form" class="early-final-form">
         <label>
-          <span>Campeão</span>
+          <span>Champion</span>
           <select name="champion" ${disabled} required>
             ${teamOptionsHtml(data.teams, prediction.champion)}
           </select>
         </label>
         <label>
-          <span>Vice-campeão</span>
+          <span>Runner-up</span>
           <select name="runner_up" ${disabled} required>
             ${teamOptionsHtml(data.teams, prediction.runner_up)}
           </select>
         </label>
         <div class="early-final-summary">
-          ${earlyFinalSummary("Campeão", prediction.champion)}
-          ${earlyFinalSummary("Vice", prediction.runner_up)}
+          ${earlyFinalSummary("Champion", prediction.champion)}
+          ${earlyFinalSummary("Runner-up", prediction.runner_up)}
         </div>
         <div class="early-final-score">
           <div>
-            <span>Campeão</span>
+            <span>Champion</span>
             <strong>${championHit ? "10" : "0"} pts</strong>
           </div>
           <div>
-            <span>Vice</span>
+            <span>Runner-up</span>
             <strong>${runnerUpHit ? "5" : "0"} pts</strong>
           </div>
           <div>
@@ -582,7 +582,7 @@ function renderEarlyFinal() {
         </div>
         <button type="submit" class="primary-action" ${disabled}>
           <span aria-hidden="true">✓</span>
-          <span>${hasPrediction ? "Atualizar Final" : "Salvar Final"}</span>
+          <span>${hasPrediction ? "Update Final" : "Save Final"}</span>
         </button>
       </form>
       ${earlyFinalOutcomeHtml(data.outcome)}
@@ -592,7 +592,7 @@ function renderEarlyFinal() {
 
 function teamOptionsHtml(teams, selected) {
   return `
-    <option value="">Selecione</option>
+    <option value="">Select</option>
     ${(teams || [])
       .map((team) => `<option value="${escapeHtml(team)}" ${team === selected ? "selected" : ""}>${escapeHtml(team)}</option>`)
       .join("")}
@@ -617,14 +617,14 @@ function earlyFinalSummary(label, teamName) {
 function earlyFinalOutcomeHtml(outcome = {}) {
   const finalists = outcome.finalists || [];
   if (!finalists.length && !outcome.champion) {
-    return `<div class="reveal-line">O resultado da Final será calculado quando a final estiver definida.</div>`;
+    return `<div class="reveal-line">The Final result will be calculated once the final is set.</div>`;
   }
   return `
     <div class="early-final-outcome">
-      <strong>Resultado apurado</strong>
-      <span>Final: ${finalists.length === 2 ? `${escapeHtml(finalists[0])} × ${escapeHtml(finalists[1])}` : "ainda indefinida"}</span>
-      <span>Campeão: ${outcome.champion ? escapeHtml(outcome.champion) : "ainda indefinido"}</span>
-      <span>Vice: ${outcome.runner_up ? escapeHtml(outcome.runner_up) : "ainda indefinido"}</span>
+      <strong>Settled result</strong>
+      <span>Final: ${finalists.length === 2 ? `${escapeHtml(finalists[0])} × ${escapeHtml(finalists[1])}` : "not set yet"}</span>
+      <span>Champion: ${outcome.champion ? escapeHtml(outcome.champion) : "not set yet"}</span>
+      <span>Runner-up: ${outcome.runner_up ? escapeHtml(outcome.runner_up) : "not set yet"}</span>
     </div>
   `;
 }
@@ -645,7 +645,7 @@ async function handleEarlyFinalSubmit(event) {
     renderEarlyFinal();
     await loadRanking(false);
     if (state.user?.is_admin) await loadAdminUsers(false);
-    showToast(data.message || "Final salva.");
+    showToast(data.message || "Final saved.");
   } catch (error) {
     showToast(error.message, "error");
   }
@@ -653,7 +653,7 @@ async function handleEarlyFinalSubmit(event) {
 
 function avatarHtml(user, className = "avatar") {
   if (user?.avatar_url) {
-    return `<span class="${className} has-image"><img src="${escapeHtml(user.avatar_url)}" alt="Foto de ${escapeHtml(user.username)}" /></span>`;
+    return `<span class="${className} has-image"><img src="${escapeHtml(user.avatar_url)}" alt="Photo of ${escapeHtml(user.username)}" /></span>`;
   }
   return `<span class="${className}">${escapeHtml(userInitials(user?.username || "?"))}</span>`;
 }
@@ -662,7 +662,7 @@ function renderAvatarElement(element, user) {
   if (!element) return;
   element.classList.toggle("has-image", Boolean(user?.avatar_url));
   element.innerHTML = user?.avatar_url
-    ? `<img src="${escapeHtml(user.avatar_url)}" alt="Foto de ${escapeHtml(user.username)}" />`
+    ? `<img src="${escapeHtml(user.avatar_url)}" alt="Photo of ${escapeHtml(user.username)}" />`
     : escapeHtml(userInitials(user?.username || "?"));
 }
 
@@ -677,14 +677,14 @@ function userInitials(name) {
 
 function resizeAvatar(file) {
   if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-    return Promise.reject(new Error("Use uma imagem JPG, PNG ou WebP."));
+    return Promise.reject(new Error("Use a JPG, PNG, or WebP image."));
   }
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onerror = () => reject(new Error("Não foi possível ler a imagem."));
+    reader.onerror = () => reject(new Error("Could not read the image."));
     reader.onload = () => {
       const image = new Image();
-      image.onerror = () => reject(new Error("A imagem enviada está inválida."));
+      image.onerror = () => reject(new Error("The uploaded image is invalid."));
       image.onload = () => {
         const size = 384;
         const sourceSize = Math.min(image.width, image.height);
@@ -736,12 +736,12 @@ function renderFilterButtons() {
 }
 
 function filterLabel(group) {
-  return group.options.find((option) => option.value === state.filters[group.key])?.label || "Todos";
+  return group.options.find((option) => option.value === state.filters[group.key])?.label || "All";
 }
 
 function renderClock() {
   const now = getNow();
-  $("#server-clock").textContent = `Horário de Brasília: ${formatClockDateTime(now)}`;
+  $("#server-clock").textContent = `Brasilia time: ${formatClockDateTime(now)}`;
   renderMissingCounter();
 }
 
@@ -754,8 +754,8 @@ function renderMissingCounter() {
   if (!counter) return;
   const count = missingMatches().length;
   counter.innerHTML = `
-    <button type="button" class="missing-chip ${count ? "" : "complete"}" title="Ver palpites faltantes">
-      <span>Faltam</span>
+    <button type="button" class="missing-chip ${count ? "" : "complete"}" title="View missing predictions">
+      <span>Missing</span>
       <strong>${count}</strong>
     </button>
   `;
@@ -767,10 +767,10 @@ function renderMatches() {
   if (!matches.length) {
     const message =
       state.scope === "upcoming"
-        ? "Nenhuma partida nas próximas 24 horas."
+        ? "No matches in the next 24 hours."
         : state.scope === "missing"
-          ? "Você já preencheu todos os palpites disponíveis."
-          : "Nenhuma partida encontrada.";
+          ? "You have already filled in all available predictions."
+          : "No matches found.";
     list.innerHTML = `<div class="empty-state">${message}</div>`;
     animateMatchList(list);
     return;
@@ -801,10 +801,10 @@ function animateMatchList(list) {
 
 function groupedMatches(matches) {
   if (state.scope === "upcoming") {
-    return [{ title: "Próximas 24hrs", matches }];
+    return [{ title: "Next 24 hours", matches }];
   }
   if (state.scope === "missing") {
-    return [{ title: "Palpites Faltantes", matches }];
+    return [{ title: "Missing predictions", matches }];
   }
   const sortMode = state.filters.sort;
   const map = new Map();
@@ -819,7 +819,7 @@ function groupedMatches(matches) {
 function sectionTitleForMatch(match, sortMode) {
   if (sortMode === "time") return formatDayTitle(match.start_at);
   if (sortMode === "phase") return phaseLabel(match.phase_slug);
-  return match.group_code ? `Grupo ${match.group_code}` : match.round_label || match.phase;
+  return match.group_code ? `Group ${match.group_code}` : match.round_label || match.phase;
 }
 
 function filteredMatches() {
@@ -881,7 +881,7 @@ function matchCard(match) {
   const homeValue = draft.home_score ?? prediction.home_score ?? "";
   const awayValue = draft.away_score ?? prediction.away_score ?? "";
   const status = currentStatus(match);
-  const statusClass = status === "encerrado" ? "gold" : status === "em andamento" ? "blue" : "";
+  const statusClass = status === "closed" ? "gold" : status === "live" ? "blue" : "";
   const points = prediction.points ? ` · ${prediction.points} pts` : "";
   return `
     <article class="match-card ${locked ? "locked" : ""}" data-match-id="${match.id}">
@@ -893,25 +893,25 @@ function matchCard(match) {
           </div>
           <div class="match-time">${formatDateTime(match.start_at)}</div>
         </div>
-        <button type="button" class="details-icon open-details" title="Detalhes" aria-label="Abrir detalhes da partida">
+        <button type="button" class="details-icon open-details" title="Details" aria-label="Open match details">
           <span aria-hidden="true">?</span>
         </button>
       </div>
       <div class="match-body">
         <div class="score-row">
           ${teamBlock(match.team_a)}
-          <input class="score-input" data-home type="number" min="0" max="99" inputmode="numeric" value="${escapeHtml(homeValue)}" ${locked ? "disabled" : ""} aria-label="Placar do time A" />
-          <span class="versus">x</span>
-          <input class="score-input" data-away type="number" min="0" max="99" inputmode="numeric" value="${escapeHtml(awayValue)}" ${locked ? "disabled" : ""} aria-label="Placar do time B" />
+          <input class="score-input" data-home type="number" min="0" max="99" inputmode="numeric" value="${escapeHtml(homeValue)}" ${locked ? "disabled" : ""} aria-label="Team A score" />
+          <span class="versus">×</span>
+          <input class="score-input" data-away type="number" min="0" max="99" inputmode="numeric" value="${escapeHtml(awayValue)}" ${locked ? "disabled" : ""} aria-label="Team B score" />
           ${teamBlock(match.team_b, true)}
         </div>
         ${resultLine(match)}
         <div class="actions-row">
           <button type="button" class="primary-action save-prediction" ${locked ? "disabled" : ""}>
-            <span aria-hidden="true">✓</span><span>Salvar${points}</span>
+            <span aria-hidden="true">✓</span><span>Save${points}</span>
           </button>
           <button type="button" class="small-action clear-prediction" ${locked || !match.my_prediction ? "disabled" : ""}>
-            <span aria-hidden="true">×</span><span>Limpar</span>
+            <span aria-hidden="true">×</span><span>Clear</span>
           </button>
         </div>
       </div>
@@ -948,16 +948,16 @@ function teamInitials(name) {
 function resultLine(match) {
   if (match.result_home === null || match.result_home === undefined) {
     return isLocked(match)
-      ? `<div class="reveal-line">Palpites fechados desde ${formatDateTime(match.start_at)}.</div>`
+      ? `<div class="reveal-line">Predictions closed since ${formatDateTime(match.start_at)}.</div>`
       : "";
   }
-  const myPoints = match.my_prediction ? ` · seu palpite: ${match.my_prediction.points || 0} pts` : "";
-  return `<div class="result-line">Resultado: ${match.result_home} x ${match.result_away}${myPoints}</div>`;
+  const myPoints = match.my_prediction ? ` · your prediction: ${match.my_prediction.points || 0} pts` : "";
+  return `<div class="result-line">Result: ${match.result_home} × ${match.result_away}${myPoints}</div>`;
 }
 
 function publicPredictionRow(row, match) {
   const hasPrediction = row.has_prediction !== false;
-  const updatedLine = hasPrediction ? `Atualizado em ${formatDateTime(row.updated_at)}` : "Aguardando palpite";
+  const updatedLine = hasPrediction ? `Updated ${formatDateTime(row.updated_at)}` : "Waiting for prediction";
   return `
     <div class="public-prediction ${hasPrediction ? "" : "missing-prediction"}">
       ${avatarHtml(row, "avatar user-avatar")}
@@ -972,7 +972,7 @@ function publicPredictionRow(row, match) {
 
 function matchStageLabel(match) {
   if (match.group_code) {
-    return `Grupo ${match.group_code} · Rodada ${groupRound(match)}`;
+    return `Group ${match.group_code} · Round ${groupRound(match)}`;
   }
   return match.round_label || match.phase;
 }
@@ -1030,7 +1030,7 @@ async function savePrediction(card, matchId) {
     const match = state.matches.find((item) => item.id === matchId);
     if (match) match.my_prediction = data.prediction;
     state.predictionDrafts.delete(matchId);
-    showToast(data.message || "Palpite aceito.");
+    showToast(data.message || "Prediction accepted.");
     await loadRanking(false);
     renderMissingCounter();
     renderMatches();
@@ -1045,7 +1045,7 @@ async function clearPrediction(matchId) {
     const match = state.matches.find((item) => item.id === matchId);
     if (match) match.my_prediction = null;
     state.predictionDrafts.delete(matchId);
-    showToast(data.message || "Palpite removido.");
+    showToast(data.message || "Prediction removed.");
     await loadRanking(false);
     renderMissingCounter();
     renderMatches();
@@ -1111,7 +1111,7 @@ function normalizePublicPredictions(rows = []) {
   $$(".details-list .public-prediction .prediction-score").forEach((element, index) => {
     const row = rows[index];
     if (!row || row.has_prediction === false) {
-      element.textContent = "Sem palpite";
+      element.textContent = "No prediction";
       return;
     }
     element.textContent = `${row.home_score} \u00d7 ${row.away_score}`;
@@ -1123,7 +1123,7 @@ function detailsPredictions(match, rows) {
     return detailsHiddenMessage(match);
   }
   if (!rows.length) {
-    return `<div class="empty-state">Ainda não há palpites salvos para esta partida.</div>`;
+    return `<div class="empty-state">No predictions saved for this match yet.</div>`;
   }
   return `
     <div class="details-list">
@@ -1138,12 +1138,12 @@ function detailsStats(match, rows) {
   }
   rows = rows.filter((row) => row.has_prediction !== false);
   if (!rows.length) {
-    return `<div class="empty-state">Ainda não há estatísticas para esta partida.</div>`;
+    return `<div class="empty-state">No statistics for this match yet.</div>`;
   }
   const total = rows.length;
   const buckets = [
     { key: "A", label: match.team_a.name, count: 0 },
-    { key: "D", label: "Empate", count: 0 },
+    { key: "D", label: "Draw", count: 0 },
     { key: "B", label: match.team_b.name, count: 0 },
   ];
   rows.forEach((row) => {
@@ -1160,7 +1160,7 @@ function detailsStats(match, rows) {
     .slice(0, 5);
   return `
     <div class="stats-block">
-      <h3>Distribuição de palpites</h3>
+      <h3>Prediction distribution</h3>
       ${buckets
         .map((bucket) => {
           const percent = Math.round((bucket.count / total) * 100);
@@ -1177,7 +1177,7 @@ function detailsStats(match, rows) {
         .join("")}
     </div>
     <div class="stats-block">
-      <h3>Placares mais escolhidos</h3>
+      <h3>Most selected scores</h3>
       <div class="score-distribution">
         ${topScores.map(([score, count]) => `<div><span>${escapeHtml(score)}</span><strong>${count}</strong></div>`).join("")}
       </div>
@@ -1188,8 +1188,8 @@ function detailsStats(match, rows) {
 function detailsHiddenMessage(match) {
   return `
     <div class="details-warning">
-      <strong>Palpites ainda ocultos</strong>
-      <span>Os palpites dos jogadores serão liberados em ${formatDateTime(match.reveal_at)}.</span>
+      <strong>Predictions still hidden</strong>
+      <span>Players' predictions will be released at ${formatDateTime(match.reveal_at)}.</span>
     </div>
   `;
 }
@@ -1197,15 +1197,15 @@ function detailsHiddenMessage(match) {
 function renderRanking() {
   const list = $("#ranking-list");
   if (!state.ranking.length) {
-    list.innerHTML = `<div class="empty-state">O ranking aparece quando houver jogadores cadastrados.</div>`;
+    list.innerHTML = `<div class="empty-state">The standings appear once players are registered.</div>`;
     return;
   }
   list.innerHTML = `
     <div class="ranking-head">
       <span>Pos.</span>
-      <span>Foto</span>
-      <span>Jogador</span>
-      <span>Palp.</span>
+      <span>Photo</span>
+      <span>Player</span>
+      <span>Pred.</span>
       <span>Pts</span>
     </div>
     ${state.ranking
@@ -1238,7 +1238,7 @@ function rankingAvatarHtml(row) {
     return avatarHtml(row, "avatar rank-avatar");
   }
   return `
-    <button type="button" class="ranking-avatar-button" data-avatar-user-id="${row.id}" aria-label="Ampliar foto de ${escapeHtml(row.username)}">
+    <button type="button" class="ranking-avatar-button" data-avatar-user-id="${row.id}" aria-label="Enlarge photo of ${escapeHtml(row.username)}">
       ${avatarHtml(row, "avatar rank-avatar")}
     </button>
   `;
@@ -1296,7 +1296,7 @@ function renderAvatarModal() {
   $("#avatar-title").textContent = user.username;
   const image = $("#avatar-preview-image");
   image.src = user.avatar_url;
-  image.alt = `Foto de ${user.username}`;
+  image.alt = `Photo of ${user.username}`;
   $("#avatar-modal").classList.remove("hidden");
 }
 
@@ -1307,7 +1307,7 @@ function rankingBreakdown(row) {
   return `
     <div class="ranking-details-head">
       <strong>${escapeHtml(row.username)}</strong>
-      <span>${breakdown.settled_predictions || 0} palpites com resultado encerrado · ${row.early_final_points || 0} pts na Final</span>
+      <span>${breakdown.settled_predictions || 0} settled predictions · ${row.early_final_points || 0} pts in the Final</span>
     </div>
     <div class="breakdown-grid">
       ${specials
@@ -1335,7 +1335,7 @@ function rankingRuleBreakdownRow(rule) {
   const count = Number(rule.count || 0);
   const rulePoints = Number(rule.points || 0);
   const total = rulePoints * count;
-  const palpiteLabel = count === 1 ? "palpite" : "palpites";
+  const palpiteLabel = count === 1 ? "prediction" : "predictions";
   return `
     <div class="breakdown-row">
       <span class="breakdown-label">${escapeHtml(rule.label)}</span>
@@ -1375,7 +1375,7 @@ function renderAdminUsers() {
   const container = $("#admin-users");
   if (!container || !state.user?.is_admin) return;
   if (!state.adminUsers.length) {
-    container.innerHTML = `<div class="empty-state">Nenhum usuário cadastrado.</div>`;
+    container.innerHTML = `<div class="empty-state">No users registered.</div>`;
     return;
   }
   container.innerHTML = state.adminUsers
@@ -1387,26 +1387,26 @@ function renderAdminUsers() {
             ${avatarHtml(user, "avatar rank-avatar")}
             <div>
               <strong>${escapeHtml(user.username)}</strong>
-              <span>${user.is_admin ? "Admin" : "Jogador"} · ${user.active ? "Ativo" : "Desativado"}</span>
+              <span>${user.is_admin ? "Admin" : "Player"} · ${user.active ? "Active" : "Disabled"}</span>
             </div>
             <div class="admin-user-stats">
               <strong>${user.points}</strong>
-              <span>${user.prediction_count} palpites</span>
+              <span>${user.prediction_count} predictions</span>
             </div>
           </div>
           <div class="admin-user-form">
             <label>
-              <span>Nome</span>
+              <span>Name</span>
               <input class="admin-user-name" maxlength="40" value="${escapeHtml(user.username)}" />
             </label>
-            <button type="button" class="small-action" data-admin-user-action="rename">Renomear</button>
+            <button type="button" class="small-action" data-admin-user-action="rename">Rename</button>
             <label>
-              <span>Nova senha</span>
-              <input class="admin-user-password" type="password" autocomplete="new-password" placeholder="Mín. 6 caracteres" />
+              <span>New password</span>
+              <input class="admin-user-password" type="password" autocomplete="new-password" placeholder="Min. 6 characters" />
             </label>
-            <button type="button" class="small-action" data-admin-user-action="reset-password">Resetar senha</button>
+            <button type="button" class="small-action" data-admin-user-action="reset-password">Reset password</button>
             <button type="button" class="${user.active ? "danger-action" : "small-action"}" data-admin-user-action="toggle-active" data-next-active="${user.active ? "false" : "true"}" ${isSelf && user.active ? "disabled" : ""}>
-              ${user.active ? "Desativar" : "Ativar"}
+              ${user.active ? "Disable" : "Enable"}
             </button>
           </div>
         </article>
@@ -1424,21 +1424,21 @@ function renderAdminFinal() {
   container.innerHTML = `
     <div class="admin-final-summary">
       <div>
-        <span>Enviaram</span>
+        <span>Submitted</span>
         <strong>${submitted.length}</strong>
       </div>
       <div>
-        <span>Faltam</span>
+        <span>Missing</span>
         <strong>${missing.length}</strong>
       </div>
       <div>
-        <span>Total ativo</span>
+        <span>Active total</span>
         <strong>${activeUsers.length}</strong>
       </div>
     </div>
     <div class="admin-final-columns">
-      ${adminFinalList("JÃ¡ colocaram a Final", submitted, true)}
-      ${adminFinalList("Faltam colocar a Final", missing, false)}
+      ${adminFinalList("Already submitted Final", submitted, true)}
+      ${adminFinalList("Still need to submit Final", missing, false)}
     </div>
   `;
   normalizeAdminFinalCopy(container, submitted, missing);
@@ -1446,21 +1446,21 @@ function renderAdminFinal() {
 
 function normalizeAdminFinalCopy(container, submitted, missing) {
   const headings = $$(".admin-final-list-head strong", container);
-  if (headings[0]) headings[0].textContent = "J\u00e1 colocaram a Final";
-  if (headings[1]) headings[1].textContent = "Faltam colocar a Final";
+  if (headings[0]) headings[0].textContent = "Already submitted Final";
+  if (headings[1]) headings[1].textContent = "Still need to submit Final";
 
   const emptyStates = $$(".admin-final-list .empty-state", container);
-  if (!submitted.length && emptyStates[0]) emptyStates[0].textContent = "Ningu\u00e9m enviou ainda.";
-  if (!missing.length && emptyStates.at(-1)) emptyStates.at(-1).textContent = "Todos os participantes ativos enviaram.";
+  if (!submitted.length && emptyStates[0]) emptyStates[0].textContent = "Nobody has submitted yet.";
+  if (!missing.length && emptyStates.at(-1)) emptyStates.at(-1).textContent = "All active participants have submitted.";
 
   $$(".admin-final-row", container).forEach((row) => {
     if (!row.querySelector(".admin-final-picks")) {
       const status = $(".admin-final-row > div span", row);
-      if (status) status.textContent = "Ainda n\u00e3o salvou";
+      if (status) status.textContent = "Not saved yet";
       return;
     }
     const championLabel = $(".admin-final-pick small", row);
-    if (championLabel) championLabel.textContent = "Campe\u00e3o";
+    if (championLabel) championLabel.textContent = "Champion";
   });
 }
 
@@ -1474,7 +1474,7 @@ function adminFinalList(title, users, submitted) {
       ${
         users.length
           ? users.map((user) => adminFinalRow(user, submitted)).join("")
-          : `<div class="empty-state">${submitted ? "NinguÃ©m enviou ainda." : "Todos os participantes ativos enviaram."}</div>`
+          : `<div class="empty-state">${submitted ? "Nobody has submitted yet." : "All active participants have submitted."}</div>`
       }
     </section>
   `;
@@ -1488,15 +1488,15 @@ function adminFinalRow(user, submitted) {
         <strong>${escapeHtml(user.username)}</strong>
         ${
           submitted
-            ? `<span>Atualizado em ${formatDateTime(user.early_final.updated_at)}</span>`
-            : `<span>Ainda nÃ£o salvou</span>`
+            ? `<span>Updated ${formatDateTime(user.early_final.updated_at)}</span>`
+            : `<span>Not saved yet</span>`
         }
       </div>
       ${
         submitted
           ? `<div class="admin-final-picks">
-              ${adminFinalPick("CampeÃ£o", user.early_final.champion)}
-              ${adminFinalPick("Vice", user.early_final.runner_up)}
+              ${adminFinalPick("Champion", user.early_final.champion)}
+              ${adminFinalPick("Runner-up", user.early_final.runner_up)}
             </div>`
           : ""
       }
@@ -1522,7 +1522,7 @@ function renderAdminAudit() {
   const container = $("#admin-audit");
   if (!container || !state.user?.is_admin) return;
   if (!state.resultAudits.length) {
-    container.innerHTML = `<div class="empty-state">Nenhuma alteração de resultado registrada.</div>`;
+    container.innerHTML = `<div class="empty-state">No result changes recorded.</div>`;
     return;
   }
   container.innerHTML = `
@@ -1532,8 +1532,8 @@ function renderAdminAudit() {
           (audit) => `
             <article class="audit-row">
               <div>
-                <strong>${escapeHtml(audit.team_a)} x ${escapeHtml(audit.team_b)}</strong>
-                <span>${formatDateTime(audit.changed_at)} · ${escapeHtml(audit.admin_username)} · ${audit.action === "clear_result" ? "reabriu" : "salvou"}</span>
+                <strong>${escapeHtml(audit.team_a)} × ${escapeHtml(audit.team_b)}</strong>
+                <span>${formatDateTime(audit.changed_at)} · ${escapeHtml(audit.admin_username)} · ${audit.action === "clear_result" ? "reopened" : "saved"}</span>
               </div>
               <div class="audit-change">
                 <span>${formatAuditResult(audit, "old")}</span>
@@ -1551,8 +1551,8 @@ function renderAdminAudit() {
 function formatAuditResult(audit, prefix) {
   const home = audit[`${prefix}_result_home`];
   const away = audit[`${prefix}_result_away`];
-  if (home === null || home === undefined || away === null || away === undefined) return "sem resultado";
-  return `${home} x ${away}`;
+  if (home === null || home === undefined || away === null || away === undefined) return "no result";
+  return `${home} × ${away}`;
 }
 
 function adminCard(match) {
@@ -1566,7 +1566,7 @@ function adminCard(match) {
         <div>
           <div class="match-meta">
             <span class="pill stage-pill">${escapeHtml(matchStageLabel(match))}</span>
-            <span class="pill ${currentStatus(match) === "encerrado" ? "gold" : ""}">${escapeHtml(currentStatus(match))}</span>
+            <span class="pill ${currentStatus(match) === "closed" ? "gold" : ""}">${escapeHtml(currentStatus(match))}</span>
           </div>
           <div class="match-time">${formatDateTime(match.start_at)}</div>
         </div>
@@ -1574,17 +1574,17 @@ function adminCard(match) {
       <div class="match-body">
         <div class="score-row">
           ${teamBlock(match.team_a)}
-          <input class="score-input admin-home" type="number" min="0" max="99" inputmode="numeric" value="${escapeHtml(resultHome)}" aria-label="Resultado do time A" />
-          <span class="versus">x</span>
-          <input class="score-input admin-away" type="number" min="0" max="99" inputmode="numeric" value="${escapeHtml(resultAway)}" aria-label="Resultado do time B" />
+          <input class="score-input admin-home" type="number" min="0" max="99" inputmode="numeric" value="${escapeHtml(resultHome)}" aria-label="Team A result" />
+          <span class="versus">×</span>
+          <input class="score-input admin-away" type="number" min="0" max="99" inputmode="numeric" value="${escapeHtml(resultAway)}" aria-label="Team B result" />
           ${teamBlock(match.team_b, true)}
         </div>
         <div class="actions-row">
           <button type="button" class="primary-action save-result">
-            <span aria-hidden="true">✓</span><span>${hasResult ? "Atualizar resultado" : "Encerrar partida"}</span>
+            <span aria-hidden="true">✓</span><span>${hasResult ? "Update result" : "Close match"}</span>
           </button>
           <button type="button" class="danger-action clear-result" ${hasResult ? "" : "disabled"}>
-            <span aria-hidden="true">×</span><span>Reabrir</span>
+            <span aria-hidden="true">×</span><span>Reopen</span>
           </button>
         </div>
       </div>
@@ -1659,7 +1659,7 @@ async function renameAdminUser(userId, card) {
     renderUserChrome();
     renderAdminUsers();
     renderAdminFinal();
-    showToast(data.message || "Usuário renomeado.");
+    showToast(data.message || "User renamed.");
   } catch (error) {
     showToast(error.message, "error");
   }
@@ -1671,7 +1671,7 @@ async function resetAdminUserPassword(userId, card) {
   try {
     const data = await api(`/api/admin/users/${userId}/reset-password`, { method: "POST", body: { password } });
     input.value = "";
-    showToast(data.message || "Senha redefinida.");
+    showToast(data.message || "Password reset.");
   } catch (error) {
     showToast(error.message, "error");
   }
@@ -1684,7 +1684,7 @@ async function setAdminUserActive(userId, active) {
     await loadRanking(false);
     renderAdminUsers();
     renderAdminFinal();
-    showToast(data.message || "Usuário atualizado.");
+    showToast(data.message || "User updated.");
   } catch (error) {
     showToast(error.message, "error");
   }
@@ -1706,7 +1706,7 @@ async function downloadAdminExport(format) {
     const response = await fetch(`/api/admin/export/${format}`, { credentials: "same-origin" });
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
-      throw new Error(data.error || "Não foi possível exportar os dados.");
+      throw new Error(data.error || "Could not export the data.");
     }
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
@@ -1717,7 +1717,7 @@ async function downloadAdminExport(format) {
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
-    showToast(`Exportação ${format.toUpperCase()} gerada.`);
+    showToast(`${format.toUpperCase()} export generated.`);
   } catch (error) {
     showToast(error.message, "error");
   }
@@ -1731,7 +1731,7 @@ async function saveResult(card, matchId) {
   try {
     const data = await api(`/api/admin/matches/${matchId}/result`, { method: "POST", body });
     state.resultDrafts.delete(matchId);
-    showToast(data.message || "Resultado salvo.");
+    showToast(data.message || "Result saved.");
     await loadAll(false);
   } catch (error) {
     showToast(error.message, "error");
@@ -1742,7 +1742,7 @@ async function clearResult(matchId) {
   try {
     const data = await api(`/api/admin/matches/${matchId}/clear-result`, { method: "POST" });
     state.resultDrafts.delete(matchId);
-    showToast(data.message || "Resultado reaberto.");
+    showToast(data.message || "Result reopened.");
     await loadAll(false);
   } catch (error) {
     showToast(error.message, "error");
@@ -1750,9 +1750,9 @@ async function clearResult(matchId) {
 }
 
 function currentStatus(match) {
-  if (match.stored_status === "encerrado" || match.status === "encerrado") return "encerrado";
-  if (new Date(match.start_at) <= getNow()) return "em andamento";
-  return "agendado";
+  if (match.stored_status === "encerrado" || match.status === "encerrado") return "closed";
+  if (new Date(match.start_at) <= getNow()) return "live";
+  return "scheduled";
 }
 
 function isLocked(match) {
@@ -1769,7 +1769,7 @@ function getNow() {
 
 function formatDateTime(value) {
   const date = value instanceof Date ? value : new Date(value);
-  return new Intl.DateTimeFormat("pt-BR", {
+  return new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Sao_Paulo",
     weekday: "short",
     day: "2-digit",
@@ -1781,7 +1781,7 @@ function formatDateTime(value) {
 
 function formatDayTitle(value) {
   const date = value instanceof Date ? value : new Date(value);
-  return new Intl.DateTimeFormat("pt-BR", {
+  return new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Sao_Paulo",
     weekday: "short",
     day: "2-digit",
@@ -1792,7 +1792,7 @@ function formatDayTitle(value) {
 
 function formatClockDateTime(value) {
   const date = value instanceof Date ? value : new Date(value);
-  return new Intl.DateTimeFormat("pt-BR", {
+  return new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Sao_Paulo",
     weekday: "short",
     day: "2-digit",
