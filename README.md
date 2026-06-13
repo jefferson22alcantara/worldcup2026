@@ -1,107 +1,102 @@
-# ⚽ World Cup 2026 Pool
+# Bolão Copa 2026
 
-Web app for managing FIFA World Cup 2026 predictions. Built in Python with Streamlit and Supabase.
+Site mobile-first para bolão entre amigos, com cadastro por usuário/senha, palpites por partida, ranking automático e painel administrativo para informar ou corrigir resultados.
 
-## How It Works
+## O que está implementado
 
-The participant goes through 7 steps to complete the full prediction:
+- Cadastro e login por nome de usuário e senha.
+- Foto de perfil obrigatória na criação de conta.
+- Admin criado por variáveis de ambiente.
+- Calendário importado de `data/copa_do_mundo_2026_jogos_horario_brasilia.csv`.
+- Horários em `America/Sao_Paulo` e bloqueio de palpites no instante de início da partida.
+- Palpites editáveis até o bloqueio.
+- Final com campeão e vice-campeão, bloqueada no início do primeiro jogo.
+- Palpites de outros usuários ocultos até 5 minutos após o início do jogo.
+- Pontuação automática ao encerrar ou editar resultado.
+- Perfil com foto do jogador.
+- Visão de jogos sem palpite e contador de pendências no topo.
+- Exportação admin em JSON/CSV com usuários, palpites, resultados, ranking e auditoria.
+- Administração de usuários: renomear, resetar senha e ativar/desativar conta.
+- Auditoria de resultados com admin responsável, data, placar anterior e placar novo.
+- PWA básico para adicionar o site à tela inicial do celular.
+- Ranking com posição, foto, jogador, palpites realizados, pontos e estatísticas por tipo de acerto.
+- Mata-mata pontuado apenas pelo placar do tempo regulamentar.
+- Resolução automática de posições de grupos e de vencedores/perdedores quando houver vencedor no tempo regulamentar.
 
-| Step | Stage |
-|---|---|
-| 1 | Registration (name, phone, email) |
-| 2 | Group Stage - choose 1st and 2nd place from each of the 12 groups (A-L) |
-| 3 | Round of 32 - 16 matchups generated from the official FIFA bracket |
-| 4 | Round of 16 - 8 matchups |
-| 5 | Quarterfinals - 4 matchups |
-| 6 | Semifinals - 2 matchups |
-| 7 | Third-place Playoff + Grand Final |
+## Rodar localmente
 
-The **8 best third-place teams** are drawn automatically from the teams that were not chosen as 1st or 2nd in each group, following the simplification defined in the pool rules.
-
-The knockout bracket follows the official FIFA 2026 structure, with matchups generated automatically from the participant's predictions.
-
-## Stack
-
-- **Frontend**: [Streamlit](https://streamlit.io)
-- **Database**: [Supabase](https://supabase.com) (PostgreSQL)
-- **Language**: Python 3.12
-
-## Database Structure
-
-| Table | Contents |
-|---|---|
-| `participantes` | Registration data |
-| `palpites` | 1st and 2nd place by group (12 rows per participant) |
-| `terceiros` | 8 teams drawn as the best third-place finishers |
-| `fases_palpites` | Predictions for each knockout stage (R32 -> Final) |
-
-## Running Locally
-
-**1. Clone the repository**
 ```bash
-git clone https://github.com/mauroroc/BolaoCopa26.git
-cd BolaoCopa26
+python app.py
 ```
 
-**2. Install dependencies**
+Abra `http://127.0.0.1:8000`.
+
+Por padrão, em desenvolvimento o admin é:
+
+- Usuário: `Math`
+- Senha: `admin123`
+
+Defina outras credenciais antes de subir:
+
 ```bash
-pip install -r requirements.txt
+ADMIN_USERNAME=seu_usuario
+ADMIN_PASSWORD=sua_senha_forte
+SECRET_KEY=um_segredo_longo
+python app.py
 ```
 
-**3. Configure secrets**
+Sem `DATABASE_URL`, o app usa SQLite local em `data/bolao.sqlite3`.
 
-Copy the template and fill it with your Supabase credentials:
+## Deploy no Render
+
+O `render.yaml` cria um Web Service no plano free e espera estas variáveis:
+
+- `SECRET_KEY`: gerada automaticamente pelo Render.
+- `ADMIN_USERNAME`: usuário admin inicial.
+- `ADMIN_PASSWORD`: senha admin inicial.
+- `DATABASE_URL`: URL de conexão Postgres.
+
+Importante: o filesystem do Web Service free do Render é efêmero, então SQLite não deve ser usado em produção. O app agora falha ao iniciar no Render se `DATABASE_URL` não estiver configurada, para evitar perda silenciosa de dados.
+
+A documentação atual do Render informa que:
+
+- Web services free podem dormir após 15 minutos sem tráfego e demorar até cerca de 1 minuto para acordar.
+- Web services free não suportam persistent disks.
+- Render Postgres free expira 30 dias após a criação e não tem backups.
+
+Como a Copa de 2026 dura mais de 30 dias, use uma destas opções:
+
+- Render Web Service free + Postgres externo persistente, colocando a URL em `DATABASE_URL`.
+- Render Web Service free + Render Postgres pago durante o torneio.
+- Render Postgres free apenas para testes antes do bolão real.
+
+Checklist para criar no Render:
+
+1. Suba este repositório para o GitHub.
+2. No Render, crie um Blueprint a partir do repositório ou um Web Service manual usando:
+   - Build Command: `pip install -r requirements.txt`
+   - Start Command: `gunicorn app:application --bind 0.0.0.0:$PORT`
+3. Escolha o instance type `Free` para o web service.
+4. Configure `ADMIN_PASSWORD`.
+5. Configure `DATABASE_URL` com uma URL Postgres persistente.
+6. Confirme que `SECRET_KEY` foi gerada ou defina uma manualmente.
+
+Referências:
+
+- https://render.com/docs/free
+- https://render.com/docs/disks
+- https://render.com/docs/environment-variables
+
+## Testes
+
 ```bash
-cp .streamlit/secrets.toml.example .streamlit/secrets.toml
+python -m unittest discover -s tests
 ```
 
-```toml
-# .streamlit/secrets.toml
-SUPABASE_URL      = "https://<project-ref>.supabase.co"
-SUPABASE_ANON_KEY = "<anon-public-key>"
-```
+## Observações de regra
 
-The `SUPABASE_ANON_KEY` is available in: **Supabase Dashboard -> Settings -> API -> anon public**.
+Na aba Final, cada jogador escolhe campeão e vice-campeão antes do primeiro jogo da Copa. O acerto do campeão soma 10 pontos, e o vice-campeão correto soma 5 pontos.
 
-**4. Create the tables in Supabase**
+O desempate de grupos é calculado por pontos, saldo de gols, gols pró, vitórias e nome do time. Se você quiser espelhar todos os critérios oficiais da FIFA em ordem completa, essa função pode ser refinada em `compute_group_tables`.
 
-Run the files in `migrations/` in order in the Supabase **SQL Editor**:
-```
-migrations/001_schema.sql
-migrations/002_grant_anon.sql
-migrations/003_fases_palpites.sql
-```
-
-**5. Run the app**
-```bash
-streamlit run app.py
-```
-
-## Deploying to Streamlit Cloud
-
-1. Fork or use this repository on [Streamlit Cloud](https://share.streamlit.io)
-2. Configure the secrets under **Settings -> Secrets**:
-```toml
-SUPABASE_URL      = "https://<project-ref>.supabase.co"
-SUPABASE_ANON_KEY = "<anon-public-key>"
-```
-3. Set the main file to `app.py` and click **Deploy**
-
-## Groups - World Cup 2026
-
-Draw held on December 5, 2025, at the Kennedy Center, Washington D.C.
-
-| Group | Teams |
-|---|---|
-| A | Mexico, South Africa, South Korea, Czech Republic |
-| B | Canada, Bosnia and Herzegovina, Qatar, Switzerland |
-| C | Brazil, Morocco, Haiti, Scotland |
-| D | United States, Paraguay, Australia, Turkey |
-| E | Germany, Curaçao, Ivory Coast, Ecuador |
-| F | Netherlands, Japan, Sweden, Tunisia |
-| G | Belgium, Egypt, Iran, New Zealand |
-| H | Spain, Cape Verde, Saudi Arabia, Uruguay |
-| I | France, Senegal, Iraq, Norway |
-| J | Argentina, Algeria, Austria, Jordan |
-| K | Portugal, DR Congo, Uzbekistan, Colombia |
-| L | England, Croatia, Ghana, Panama |
+Para os placeholders de `3º colocado dos Grupos ...`, o sistema escolhe o melhor terceiro colocado entre os grupos listados quando todos estiverem completos.
